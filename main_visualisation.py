@@ -30,6 +30,8 @@ def plot_histogramme(ax, actual_values, predicted_values, x_labels, real_variati
 def monitoring_today_validation(df_total, df_titre, df_arret):
 
     current_day = df_total.index.max()
+    current_day_int = int(current_day.strftime('%w'))
+    current_day_name = current_day.strftime('%A')
 
     unique_titre = np.load("model/CATEGORIE_TITRE.npy")
     unique_arret = np.load("model/LIBELLE_ARRET.npy")
@@ -53,9 +55,9 @@ def monitoring_today_validation(df_total, df_titre, df_arret):
     actual_titre_variation = (actual_titre_validation["NB_VALD"] - predicted_value_titre)/actual_titre_validation["NB_VALD"]
     actual_arret_variation = (actual_arret_validation["NB_VALD"] - predicted_value_arret)/actual_arret_validation["NB_VALD"]
 
-    actual_total_variation_minus_incertitude = np.maximum(abs(actual_total_variation) - incertitude_total, 0)
-    actual_titre_variation_minus_incertitude = np.maximum(abs(actual_titre_variation) - incertitude_titre, 0)
-    actual_arret_variation_minus_incertitude = np.maximum(abs(actual_arret_variation) - incertitude_arret, 0)
+    actual_total_variation_minus_incertitude = np.maximum(abs(actual_total_variation) - incertitude_total[:,current_day_int], 0)
+    actual_titre_variation_minus_incertitude = np.maximum(abs(actual_titre_variation) - incertitude_titre[:,current_day_int], 0)
+    actual_arret_variation_minus_incertitude = np.maximum(abs(actual_arret_variation) - incertitude_arret[:,current_day_int], 0)
 
     indices_top5_largest_variation_arret = np.argsort(actual_arret_variation_minus_incertitude)[-5:]
 
@@ -70,15 +72,15 @@ def monitoring_today_validation(df_total, df_titre, df_arret):
 
     # plot total
     plot_histogramme(ax2, actual_total_validation["NB_VALD"].tolist(), predicted_value_total, [''],
-                     actual_total_variation_minus_incertitude, "Total", f"Nombre de validation le {current_day.strftime('%Y-%m-%d')}")
+                     actual_total_variation_minus_incertitude, "Total", f"Nombre de validation le {current_day_name} {current_day.strftime('%Y-%m-%d')}")
     # plot titre
     plot_histogramme(ax3, actual_titre_validation["NB_VALD"].tolist(), predicted_value_titre, unique_titre,
-                     actual_titre_variation_minus_incertitude, "Titre de transport", f"Nombre de validation le {current_day.strftime('%Y-%m-%d')}")
+                     actual_titre_variation_minus_incertitude, "Titre de transport", f"Nombre de validation le {current_day_name} {current_day.strftime('%Y-%m-%d')}")
     # plot arret
     plot_histogramme(ax1, np.array(actual_arret_validation["NB_VALD"])[indices_top5_largest_variation_arret],
                      predicted_value_arret[indices_top5_largest_variation_arret],
                      unique_arret[indices_top5_largest_variation_arret], np.array(actual_arret_variation_minus_incertitude)[indices_top5_largest_variation_arret],
-                     "Nom de l'arrêt", f"Nombre de validation le {current_day.strftime('%Y-%m-%d')}")
+                     "Nom de l'arrêt", f"Nombre de validation le {current_day_name} {current_day.strftime('%Y-%m-%d')}")
 
     plt.subplots_adjust(hspace=0.15, wspace=0.15, left=0.07, right=0.95, bottom=0.05, top=0.95)
     plt.show()
@@ -88,9 +90,9 @@ def read_data_test():
     df_titre = pd.read_csv("data/past/validation_groupby_JOUR_CATEGORIE_TITRE.csv", sep=";", parse_dates=['JOUR'],index_col='JOUR')
     df_arret = pd.read_csv("data/past/validation_groupby_JOUR_LIBELLE_ARRET.csv", sep=";", parse_dates=['JOUR'],index_col='JOUR')
 
-    df_total = df_total[(df_total.index >= "2019-01-01") & (df_total.index <= "2019-11-20")]
-    df_titre = df_titre[(df_titre.index >= "2019-01-01") & (df_titre.index <= "2019-11-20")]
-    df_arret = df_arret[(df_arret.index >= "2019-01-01") & (df_arret.index <= "2019-11-20")]
+    df_total = df_total[(df_total.index >= "2019-01-01") & (df_total.index <= "2019-04-22")]
+    df_titre = df_titre[(df_titre.index >= "2019-01-01") & (df_titre.index <= "2019-04-22")]
+    df_arret = df_arret[(df_arret.index >= "2019-01-01") & (df_arret.index <= "2019-04-22")]
 
     monitoring_today_validation(df_total, df_titre, df_arret)
 

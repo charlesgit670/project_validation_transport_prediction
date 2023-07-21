@@ -3,20 +3,25 @@ import numpy as np
 
 from joblib import load
 from keras.models import load_model
+import holidays
 
 
 def predict_total_validation(df):
     window_size = 45
     assert(len(df) >= window_size)
+    df['jour_semaine'] = df.index.strftime('%w').astype(int)
+    france_holidays = holidays.France()
+    df['jour_ferie'] = df.index.to_series().apply(lambda d: d in france_holidays).astype(int)
 
     scaler_dir = 'model/scaler'
     model_dir = 'model'
     scaler = load(os.path.join(scaler_dir, "scaler_total_validation.joblib"))
 
     data = scaler.transform(df['NB_VALD'].values.reshape(-1, 1))
-    data = data[-window_size:,:]
+    data = np.concatenate((data, df['jour_semaine'].values.reshape(-1, 1), df['jour_ferie'].values.reshape(-1, 1)), axis=1)
+    data = data[-window_size:]
     model = load_model(os.path.join(model_dir, 'lstm_total_validation.h5'))
-    predicted_value = model.predict(data.reshape(1,-1,1))
+    predicted_value = model.predict(data.reshape(1,-1,3))
     predicted_value = scaler.inverse_transform(predicted_value).reshape(-1)
 
     return predicted_value
@@ -24,6 +29,10 @@ def predict_total_validation(df):
 
 def predict_titre_validation(df):
     window_size = 45
+    df['jour_semaine'] = df.index.strftime('%w').astype(int)
+    france_holidays = holidays.France()
+    df['jour_ferie'] = df.index.to_series().apply(lambda d: d in france_holidays).astype(int)
+
     scaler_dir = 'model/scaler'
     model_dir = 'model'
 
@@ -36,11 +45,11 @@ def predict_titre_validation(df):
         assert (len(df_filter) >= 45)
         scaler_dict[titre] = load(os.path.join(scaler_dir, "scaler_titre_"+titre+".joblib"))
         data_tmp = scaler_dict[titre].transform(df_filter['NB_VALD'].values.reshape(-1, 1))
-        data_tmp = data_tmp[-window_size:, :]
         data.append(np.expand_dims(data_tmp, axis=0))
 
     data = np.concatenate(data, axis=2)
-
+    data = np.concatenate((data, df_filter['jour_semaine'].values[np.newaxis, :, np.newaxis], df_filter['jour_ferie'].values[np.newaxis, :, np.newaxis]), axis=2)
+    data = data[:,-window_size:]
     model = load_model(os.path.join(model_dir, 'lstm_titre_validation.h5'))
     predicted_value = model.predict(data).reshape(-1)
 
@@ -52,6 +61,10 @@ def predict_titre_validation(df):
 
 def predict_arret_validation(df):
     window_size = 45
+    df['jour_semaine'] = df.index.strftime('%w').astype(int)
+    france_holidays = holidays.France()
+    df['jour_ferie'] = df.index.to_series().apply(lambda d: d in france_holidays).astype(int)
+
     scaler_dir = 'model/scaler'
     model_dir = 'model'
 
@@ -64,11 +77,11 @@ def predict_arret_validation(df):
         assert (len(df_filter) >= 45)
         scaler_dict[arret] = load(os.path.join(scaler_dir, "scaler_titre_" + arret + ".joblib"))
         data_tmp = scaler_dict[arret].transform(df_filter['NB_VALD'].values.reshape(-1, 1))
-        data_tmp = data_tmp[-window_size:, :]
         data.append(np.expand_dims(data_tmp, axis=0))
 
     data = np.concatenate(data, axis=2)
-
+    data = np.concatenate((data, df_filter['jour_semaine'].values[np.newaxis, :, np.newaxis], df_filter['jour_ferie'].values[np.newaxis, :, np.newaxis]), axis=2)
+    data = data[:,-window_size:]
     model = load_model(os.path.join(model_dir, 'lstm_arret_validation.h5'))
     predicted_value = model.predict(data).reshape(-1)
 
